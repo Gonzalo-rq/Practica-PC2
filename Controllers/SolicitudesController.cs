@@ -128,12 +128,128 @@ public class SolicitudesController : Controller
             return NotFound();
         }
 
-        // Solo el propietario o un usuario con rol Analista puede ver el detalle
+        // Solo el propietario o un analista puede ver el detalle
         if (!esAnalista && solicitud.Cliente?.UsuarioId != userId)
         {
             return Forbid();
         }
 
         return View(solicitud);
+    }
+
+    // GET: /Solicitudes/Crear
+    [HttpGet]
+    public async Task<IActionResult> Crear()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Challenge();
+        }
+
+        var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.UsuarioId == userId);
+        if (cliente == null)
+        {
+            cliente = new Cliente
+            {
+                UsuarioId = userId,
+                IngresosMensuales = 3500.00m,
+                Activo = true
+            };
+            _context.Clientes.Add(cliente);
+            await _context.SaveChangesAsync();
+        }
+
+        var tienePendiente = await _context.SolicitudesCredito
+            .AnyAsync(s => s.ClienteId == cliente.Id && s.Estado == EstadoSolicitud.Pendiente);
+
+        var viewModel = new CrearSolicitudViewModel
+        {
+            IngresosMensualesCliente = cliente.IngresosMensuales,
+            ClienteActivo = cliente.Activo,
+            TieneSolicitudPendiente = tienePendiente
+        };
+
+        if (!cliente.Activo)
+        {
+            ModelState.AddModelError(string.Empty, "Tu perfil de cliente se encuentra inactivo. No puedes solicitar créditos.");
+        }
+        else if (tienePendiente)
+        {
+            ModelState.AddModelError(string.Empty, "Ya cuentas con una solicitud en estado Pendiente. No es posible crear otra hasta que sea evaluada.");
+        }
+
+        return View(viewModel);
+    }
+
+    // POST: /Solicitudes/Crear
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Crear(CrearSolicitudViewModel model)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Challenge();
+        }
+
+        var cliente = await _context.Clientes.FirstOrDefaultAsync(c => c.UsuarioId == userId);
+        if (cliente == null)
+        {
+            ModelState.AddModelError(string.Empty, "No existe un perfil de cliente asociado a tu usuario.");
+            return View(model);
+        }
+
+        model.IngresosMensualesCliente = cliente.IngresosMensuales;
+        model.ClienteActivo = cliente.Activo;
+
+        // Validaciones server-side de negocio
+        if (!cliente.Activo)
+        {
+            ModelState.AddModelError(string.Empty, "El cliente se encuentra inactivo y no puede registrar solicitudes.");
+        }
+
+        if (model.MontoSolicitado <= 0)
+        {
+            ModelState.AddModelError(nameof(model.MontoSolicitado), "El monto solicitado debe ser mayor a 0.");
+        }
+
+        var tienePendiente = await _context.SolicitudesCredito
+            .AnyAsync(s => s.ClienteId == cliente.Id && s.Estado == EstadoSolicitud.Pendiente);
+
+        model.TieneSolicitudPendiente = tienePendiente;
+        if (tienePendiente)
+        {
+            ModelState.AddModelError(string.Empty, "No se permite más de una solicitud en estado Pendiente por cliente.");
+        }
+
+        var montoMaximo = cliente.IngresosMensuales * 10;
+        if (model.MontoSolicitado > montoMaximo)
+        {
+            ModelState.AddModelError(nameof(model.MontoSolicitado), 
+                $"El monto solicitado no puede superar 10 veces tus ingresos mensuales ({montoMaximo:C}).");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var solicitud = new SolicitudCredito
+        {
+            ClienteId = cliente.Id,
+            MontoSolicitado = model.MontoSolicitado,
+            FechaSolicitud = DateTime.UtcNow,
+            Estado = EstadoSolicitud.Pendiente
+        };
+
+        _context.SolicitudesCredito.Add(solicitud);
+        await _context.SaveChangesAsync();
+
+        ViewBag.MensajeExito = $"¡Solicitud #{solicitud.Id} registrada exitosamente por {solicitud.MontoSolicitado:C}! Su estado inicial es Pendiente.";
+        model.TieneSolicitudPendiente = true;
+        model.MontoSolicitado = 0;
+
+        return View(model);
     }
 }

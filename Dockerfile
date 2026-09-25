@@ -12,14 +12,13 @@ RUN dotnet publish "CreditosApp.csproj" -c Release -o /app/publish /p:UseAppHost
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Crear directorio para persistencia opcional de base de datos SQLite en disco de Render
-RUN mkdir -p /data
+# Crear directorios con permisos para SQLite tanto en /data como en /var/data
+RUN mkdir -p /data /var/data && chmod -R 777 /data /var/data
 
 COPY --from=build /app/publish .
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
 
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ConnectionStrings__DefaultConnection="Data Source=/data/app.db;Cache=Shared"
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Comando de inicio con expansión directa de PORT en Linux shell sin depender de scripts externos
+ENTRYPOINT ["sh", "-c", "exec dotnet CreditosApp.dll --urls http://0.0.0.0:${PORT:-8080}"]

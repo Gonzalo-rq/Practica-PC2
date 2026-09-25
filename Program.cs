@@ -8,7 +8,29 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    ?? "Data Source=/data/app.db;Cache=Shared";
+
+// Asegurar que el directorio de la base de datos SQLite exista
+try
+{
+    var match = System.Text.RegularExpressions.Regex.Match(connectionString, @"(?:Data Source|DataSource)\s*=\s*([^;]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    if (match.Success)
+    {
+        var dbPath = match.Groups[1].Value.Trim().Trim('\'', '"');
+        if (!string.IsNullOrEmpty(dbPath) && !dbPath.Equals(":memory:", StringComparison.OrdinalIgnoreCase))
+        {
+            var dir = Path.GetDirectoryName(dbPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+        }
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"[Aviso SQLite] No se pudo verificar/crear directorio de base de datos: {ex.Message}");
+}
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));

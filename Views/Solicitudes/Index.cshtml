@@ -1,0 +1,129 @@
+@model CreditosApp.Models.FiltroSolicitudesViewModel
+
+@{
+    ViewData["Title"] = "Mis Solicitudes";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="bi bi-folder2-open"></i> Mis Solicitudes de Crédito</h2>
+        <a asp-action="Crear" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nueva Solicitud
+        </a>
+    </div>
+
+    @if (ViewBag.Mensaje != null)
+    {
+        <div class="alert alert-info">@ViewBag.Mensaje</div>
+    }
+
+    <!-- Panel de Filtros -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Filtros de Búsqueda</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Index" method="get" class="row g-3">
+                <div asp-validation-summary="All" class="text-danger col-12"></div>
+
+                <div class="col-md-3">
+                    <label asp-for="Estado" class="form-label">Estado</label>
+                    <select asp-for="Estado" class="form-select" asp-items="Html.GetEnumSelectList<CreditosApp.Models.EstadoSolicitud>()">
+                        <option value="">-- Todos los estados --</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label asp-for="MontoMin" class="form-label">Monto Mínimo</label>
+                    <input asp-for="MontoMin" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                    <span asp-validation-for="MontoMin" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-2">
+                    <label asp-for="MontoMax" class="form-label">Monto Máximo</label>
+                    <input asp-for="MontoMax" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                    <span asp-validation-for="MontoMax" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-2">
+                    <label asp-for="FechaInicio" class="form-label">Desde</label>
+                    <input asp-for="FechaInicio" class="form-control" />
+                    <span asp-validation-for="FechaInicio" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-2">
+                    <label asp-for="FechaFin" class="form-label">Hasta</label>
+                    <input asp-for="FechaFin" class="form-control" />
+                    <span asp-validation-for="FechaFin" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        Filtrar
+                    </button>
+                </div>
+            </form>
+            <div class="mt-2 text-end">
+                <a asp-action="Index" class="btn btn-sm btn-link text-decoration-none">Limpiar Filtros</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Listado de Solicitudes -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0 align-middle" id="tabla-solicitudes">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#ID</th>
+                            <th>Monto Solicitado</th>
+                            <th>Fecha de Solicitud</th>
+                            <th>Estado</th>
+                            <th>Motivo de Rechazo</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Solicitudes != null && Model.Solicitudes.Any())
+                        {
+                            foreach (var s in Model.Solicitudes)
+                            {
+                                <tr id="solicitud-row-@s.Id">
+                                    <td><strong>#@s.Id</strong></td>
+                                    <td>@s.MontoSolicitado.ToString("C")</td>
+                                    <td>@s.FechaSolicitud.ToLocalTime().ToString("g")</td>
+                                    <td>
+                                        <span class="badge solicitud-badge @(s.Estado == CreditosApp.Models.EstadoSolicitud.Aprobado ? "bg-success" : s.Estado == CreditosApp.Models.EstadoSolicitud.Rechazado ? "bg-danger" : "bg-warning text-dark")">
+                                            @s.Estado
+                                        </span>
+                                    </td>
+                                    <td class="solicitud-motivo">
+                                        @(string.IsNullOrEmpty(s.MotivoRechazo) ? "-" : s.MotivoRechazo)
+                                    </td>
+                                    <td class="text-center">
+                                        <a asp-action="Detalle" asp-route-id="@s.Id" class="btn btn-sm btn-outline-primary">
+                                            Ver Detalle
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    No se encontraron solicitudes registradas con los filtros seleccionados.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

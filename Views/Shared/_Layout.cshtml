@@ -1,19 +1,21 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - CreditosApp</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] - Plataforma de Créditos</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CreditosApp.styles.css" asp-append-version="true" />
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">CreditosApp</a>
+                <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-bank"></i> CreditosApp
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -21,26 +23,65 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Inicio</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Solicitudes" asp-action="Index">
+                                    <i class="bi bi-card-checklist"></i> Mis Solicitudes
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Solicitudes" asp-action="Crear">
+                                    <i class="bi bi-plus-circle"></i> Nueva Solicitud
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Notificaciones" asp-action="Index">
+                                    <i class="bi bi-bell"></i> Mis Notificaciones
+                                </a>
+                            </li>
+                            @if (User.IsInRole("Analista"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-warning fw-bold" asp-controller="Analista" asp-action="Index">
+                                        <i class="bi bi-shield-check"></i> Panel Analista
+                                    </a>
+                                </li>
+                            }
+                        }
                     </ul>
+
+                    <!-- Contenedor para enlace de última solicitud visitada (Redis Sesión - P4) -->
+                    <ul class="navbar-nav me-3" id="nav-ultima-solicitud">
+                        @if (Context.Session.GetString("UltimaSolicitudId") != null)
+                        {
+                            <li class="nav-item">
+                                <a class="btn btn-sm btn-outline-info my-1" asp-controller="Solicitudes" asp-action="Detalle" asp-route-id="@Context.Session.GetString("UltimaSolicitudId")">
+                                    <i class="bi bi-clock-history"></i> Ver última solicitud (@Context.Session.GetString("UltimaSolicitudMonto"))
+                                </a>
+                            </li>
+                        }
+                    </ul>
+
                     <partial name="_LoginPartial" />
                 </div>
             </div>
         </nav>
     </header>
     <div class="container">
+        <!-- Toast / Alertas WebSocket (P6) -->
+        <div id="toast-container" class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100;"></div>
+
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - CreditosApp - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <footer class="border-top footer text-muted py-3 bg-light mt-auto">
+        <div class="container text-center">
+            &copy; 2026 - CreditosApp - Plataforma de Gestión de Solicitudes de Crédito
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

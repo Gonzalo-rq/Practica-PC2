@@ -13,6 +13,7 @@ public class ApplicationDbContext : IdentityDbContext
 
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<SolicitudCredito> SolicitudesCredito => Set<SolicitudCredito>();
+    public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -29,5 +30,10 @@ public class ApplicationDbContext : IdentityDbContext
             .WithOne()
             .HasForeignKey<Cliente>(c => c.UsuarioId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Unicidad de MessageId para idempotencia en procesamiento de eventos RabbitMQ
+        builder.Entity<Notificacion>()
+            .HasIndex(n => n.MessageId)
+            .IsUnique();
     }
 }

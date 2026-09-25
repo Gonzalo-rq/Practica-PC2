@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using CreditosApp.Data;
+using CreditosApp.Hubs;
 using CreditosApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,6 +44,8 @@ else
 builder.Services.AddScoped<ICreditCacheService, CreditCacheService>();
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddSignalR();
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -85,5 +88,7 @@ app.MapControllerRoute(
 
 app.MapRazorPages()
    .WithStaticAssets();
+
+app.MapHub<SolicitudesHub>("/hubs/solicitudes");
 
 app.Run();

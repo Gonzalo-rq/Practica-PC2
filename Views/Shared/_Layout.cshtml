@@ -25,32 +25,26 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Inicio</a>
                         </li>
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Solicitudes" asp-action="Index">
-                                    <i class="bi bi-card-checklist"></i> Mis Solicitudes
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Solicitudes" asp-action="Crear">
-                                    <i class="bi bi-plus-circle"></i> Nueva Solicitud
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Notificaciones" asp-action="Index">
-                                    <i class="bi bi-bell"></i> Mis Notificaciones
-                                </a>
-                            </li>
-                            @if (User.IsInRole("Analista"))
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link text-warning fw-bold" asp-controller="Analista" asp-action="Index">
-                                        <i class="bi bi-shield-check"></i> Panel Analista
-                                    </a>
-                                </li>
-                            }
-                        }
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Solicitudes" asp-action="Index">
+                                <i class="bi bi-card-checklist"></i> Mis Solicitudes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Solicitudes" asp-action="Crear">
+                                <i class="bi bi-plus-circle"></i> Nueva Solicitud
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Notificaciones" asp-action="Index">
+                                <i class="bi bi-bell"></i> Mis Notificaciones
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-warning fw-bold" asp-controller="Analista" asp-action="Index">
+                                <i class="bi bi-shield-check"></i> Panel Analista
+                            </a>
+                        </li>
                     </ul>
 
                     <!-- Contenedor para enlace de última solicitud visitada (Redis Sesión - P4) -->

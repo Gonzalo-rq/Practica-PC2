@@ -1,8 +1,160 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Plataforma de Créditos";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container py-4">
+    <!-- Hero Section -->
+    <div class="p-5 mb-4 bg-light rounded-3 shadow-sm border">
+        <div class="container-fluid py-2">
+            <h1 class="display-5 fw-bold text-dark mb-3">
+                <i class="bi bi-bank text-primary"></i> Plataforma de Créditos
+            </h1>
+            <p class="col-md-9 fs-5 text-muted">
+                Sistema integral para la originación, evaluación y seguimiento de solicitudes de crédito en tiempo real. Desarrollado con <strong>ASP.NET Core (.NET 10)</strong>, <strong>Redis Cache</strong>, <strong>WebSockets (SignalR)</strong> y mensajería en cola con <strong>Cloud MQ (RabbitMQ en CloudAMQP)</strong>.
+            </p>
+
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <a asp-controller="Solicitudes" asp-action="Index" class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-card-checklist"></i> Mis Solicitudes
+                    </a>
+                    <a asp-controller="Solicitudes" asp-action="Crear" class="btn btn-outline-primary btn-lg px-4">
+                        <i class="bi bi-plus-circle"></i> Solicitar Crédito
+                    </a>
+                    <a asp-controller="Notificaciones" asp-action="Index" class="btn btn-outline-secondary btn-lg px-4">
+                        <i class="bi bi-bell"></i> Mis Notificaciones
+                    </a>
+                    @if (User.IsInRole("Analista"))
+                    {
+                        <a asp-controller="Analista" asp-action="Index" class="btn btn-warning btn-lg px-4 fw-bold">
+                            <i class="bi bi-shield-check"></i> Panel de Analista
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+                    </a>
+                    <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-primary btn-lg px-4">
+                        <i class="bi bi-person-plus"></i> Crear Cuenta de Cliente
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Cuentas de Acceso Rápido / Demo -->
+    <div class="card mb-4 border-primary shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-key-fill"></i> Cuentas de Demostración Sembradas en el Sistema</h5>
+            <span class="badge bg-light text-primary">Preconfiguradas</span>
+        </div>
+        <div class="card-body">
+            <p class="card-text text-muted mb-3">
+                Puedes iniciar sesión directamente con cualquiera de los siguientes usuarios para evaluar las diferentes funcionalidades del examen:
+            </p>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="border rounded p-3 h-100 bg-white">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-warning text-dark me-2">Rol Analista</span>
+                            <strong class="text-dark">Analista de Riesgo</strong>
+                        </div>
+                        <p class="small text-muted mb-2">Evalúa, aprueba o rechaza solicitudes en el panel <code>/Analista</code> aplicando reglas financieras.</p>
+                        <div class="bg-light p-2 rounded small font-monospace">
+                            <div><strong>Usuario:</strong> analista@creditos.com</div>
+                            <div><strong>Clave:</strong> Analista123!</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="border rounded p-3 h-100 bg-white">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-info text-dark me-2">Cliente 1</span>
+                            <strong class="text-dark">Juan Pérez</strong>
+                        </div>
+                        <p class="small text-muted mb-2">Cuenta con solicitud #1 <strong>Pendiente</strong> ($5,000). Recibe actualizaciones por WebSocket sin recargar.</p>
+                        <div class="bg-light p-2 rounded small font-monospace">
+                            <div><strong>Usuario:</strong> cliente1@creditos.com</div>
+                            <div><strong>Clave:</strong> Cliente123!</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="border rounded p-3 h-100 bg-white">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-success me-2">Cliente 2</span>
+                            <strong class="text-dark">María Gómez</strong>
+                        </div>
+                        <p class="small text-muted mb-2">Cuenta con solicitud #2 <strong>Aprobada</strong> ($10,000). Puede registrar nuevas solicitudes para probar Cloud MQ.</p>
+                        <div class="bg-light p-2 rounded small font-monospace">
+                            <div><strong>Usuario:</strong> cliente2@creditos.com</div>
+                            <div><strong>Clave:</strong> Cliente123!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulos y Arquitectura del Sistema -->
+    <div class="row g-4 mt-1">
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm border-0 bg-white">
+                <div class="card-body">
+                    <div class="fs-1 text-primary mb-2"><i class="bi bi-card-checklist"></i></div>
+                    <h5 class="card-title fw-bold">Catálogo y Filtros</h5>
+                    <p class="card-text text-muted small">
+                        Consulta tus solicitudes con filtros validados en servidor por estado, rango de montos y fechas.
+                    </p>
+                    <a asp-controller="Solicitudes" asp-action="Index" class="btn btn-sm btn-outline-primary">Ver Solicitudes &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm border-0 bg-white">
+                <div class="card-body">
+                    <div class="fs-1 text-danger mb-2"><i class="bi bi-lightning-charge"></i></div>
+                    <h5 class="card-title fw-bold">Redis Cache & Sesión</h5>
+                    <p class="card-text text-muted small">
+                        Caché distribuido de 60s con invalidación activa y almacenamiento de la última solicitud visitada en sesión.
+                    </p>
+                    <span class="badge bg-danger">Redis Cloud</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm border-0 bg-white">
+                <div class="card-body">
+                    <div class="fs-1 text-success mb-2"><i class="bi bi-broadcast"></i></div>
+                    <h5 class="card-title fw-bold">WebSocket en Vivo</h5>
+                    <p class="card-text text-muted small">
+                        Notificaciones en tiempo real dirigidas exclusivamente al propietario de la solicitud mediante SignalR Hub.
+                    </p>
+                    <span class="badge bg-success">WebSocket Transport</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm border-0 bg-white">
+                <div class="card-body">
+                    <div class="fs-1 text-info mb-2"><i class="bi bi-envelope-paper"></i></div>
+                    <h5 class="card-title fw-bold">Cloud MQ (RabbitMQ)</h5>
+                    <p class="card-text text-muted small">
+                        Publicación de eventos con Publisher Confirms y consumidor desacoplado con ACK manual e idempotencia por UUID.
+                    </p>
+                    <a asp-controller="Notificaciones" asp-action="Index" class="btn btn-sm btn-outline-info">Ver Notificaciones &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

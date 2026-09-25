@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: creditos-app
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: Data Source=/var/data/app.db;Cache=Shared
+      - key: Redis__ConnectionString
+        value: superglossy-hobbies-tangerine-38114.db.redis.io:13512,password=T2bE8h7rXhekGlsrqFxHv2CYMMrKf0M7,user=default,ssl=False,abortConnect=false
+      - key: RabbitMq__ConnectionString
+        value: amqps://nrsnmniy:yxEAcsF6CDtVTT9HGmFBi0pR78JRLTFB@jackal.rmq.cloudamqp.com/nrsnmniy
+      - key: RabbitMq__QueueName
+        value: solicitudes.notificaciones
+      - key: RabbitMq__ConsumerEnabled
+        value: "true"
+    disk:
+      name: creditos-sqlite-data
+      mountPath: /var/data
+      sizeGB: 1

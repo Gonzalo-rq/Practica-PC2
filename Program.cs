@@ -42,6 +42,8 @@ else
 }
 
 builder.Services.AddScoped<ICreditCacheService, CreditCacheService>();
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
+builder.Services.AddHostedService<RabbitMqConsumerService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();

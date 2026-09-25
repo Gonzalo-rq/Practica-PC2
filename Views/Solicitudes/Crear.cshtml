@@ -23,6 +23,14 @@
                         </div>
                     }
 
+                    @if (ViewBag.AdvertenciaCola != null)
+                    {
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-circle-fill me-2"></i>
+                            <strong>Advertencia Cloud MQ:</strong> @ViewBag.AdvertenciaCola
+                        </div>
+                    }
+
                     @if (!ViewData.ModelState.IsValid)
                     {
                         <div class="alert alert-danger" role="alert">

@@ -15,15 +15,18 @@ public class SolicitudesController : Controller
     private readonly ApplicationDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly ICreditCacheService _cacheService;
+    private readonly IRabbitMqPublisher _rabbitMqPublisher;
 
     public SolicitudesController(
         ApplicationDbContext context, 
         UserManager<IdentityUser> userManager,
-        ICreditCacheService cacheService)
+        ICreditCacheService cacheService,
+        IRabbitMqPublisher rabbitMqPublisher)
     {
         _context = context;
         _userManager = userManager;
         _cacheService = cacheService;
+        _rabbitMqPublisher = rabbitMqPublisher;
     }
 
     // GET: /Solicitudes o /Solicitudes/MisSolicitudes
@@ -282,6 +285,21 @@ public class SolicitudesController : Controller
 
         // Pregunta 4: Invalidar caché de Redis al registrar nueva solicitud
         await _cacheService.InvalidarSolicitudesUsuarioAsync(userId);
+
+        // Pregunta 7: Publicar mensaje persistente en RabbitMQ CloudAMQP con confirmación de publicador
+        var mensajeCola = new SolicitudRegistradaMensaje
+        {
+            MessageId = Guid.NewGuid(),
+            SolicitudId = solicitud.Id,
+            UsuarioId = userId,
+            FechaEventoUtc = DateTime.UtcNow
+        };
+
+        var publicadoOk = await _rabbitMqPublisher.PublicarSolicitudRegistradaAsync(mensajeCola);
+        if (!publicadoOk)
+        {
+            ViewBag.AdvertenciaCola = "La solicitud fue creada en el sistema, pero la notificación no pudo encolarse en Cloud MQ en este momento. Se conservó el registro de la solicitud.";
+        }
 
         ViewBag.MensajeExito = $"¡Solicitud #{solicitud.Id} registrada exitosamente por {solicitud.MontoSolicitado:C}! Su estado inicial es Pendiente.";
         model.TieneSolicitudPendiente = true;

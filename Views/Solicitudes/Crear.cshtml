@@ -1,0 +1,89 @@
+@model CreditosApp.Models.CrearSolicitudViewModel
+
+@{
+    ViewData["Title"] = "Nueva Solicitud de Crédito";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-file-earmark-plus"></i> Registrar Solicitud de Crédito</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (ViewBag.MensajeExito != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <strong>@ViewBag.MensajeExito</strong>
+                            <div class="mt-2">
+                                <a asp-action="Index" class="btn btn-sm btn-outline-success">Ver en Mis Solicitudes</a>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <h6 class="alert-heading fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill"></i> Se encontraron errores:</h6>
+                            <div asp-validation-summary="All" class="mb-0"></div>
+                        </div>
+                    }
+
+                    <!-- Información de Capacidad Crediticia -->
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted text-uppercase small fw-bold">Información de tu Perfil</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Tus Ingresos Mensuales:</small>
+                                    <span class="fs-5 fw-bold text-dark">@Model.IngresosMensualesCliente.ToString("C")</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Monto Máximo Permitido (10x):</small>
+                                    <span class="fs-5 fw-bold text-success">@Model.MontoMaximoPermitido.ToString("C")</span>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge @(Model.ClienteActivo ? "bg-success" : "bg-danger")">
+                                    @(Model.ClienteActivo ? "Cliente Activo" : "Cliente Inactivo")
+                                </span>
+                                @if (Model.TieneSolicitudPendiente)
+                                {
+                                    <span class="badge bg-warning text-dark ms-1">Tienes una Solicitud Pendiente</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <form asp-action="Crear" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label asp-for="MontoSolicitado" class="form-label fw-bold"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input asp-for="MontoSolicitado" type="number" step="0.01" class="form-control form-control-lg" placeholder="Ej. 5000.00" 
+                                       disabled="@(!Model.ClienteActivo || Model.TieneSolicitudPendiente)" />
+                            </div>
+                            <span asp-validation-for="MontoSolicitado" class="text-danger small"></span>
+                            <div class="form-text">El monto no puede superar 10 veces tus ingresos mensuales ni ser menor o igual a 0.</div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">Cancelar</a>
+                            <button type="submit" class="btn btn-primary px-4" disabled="@(!Model.ClienteActivo || Model.TieneSolicitudPendiente)">
+                                <i class="bi bi-send"></i> Enviar Solicitud
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

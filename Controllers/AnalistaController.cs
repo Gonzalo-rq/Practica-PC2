@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using CreditosApp.Data;
+using CreditosApp.Hubs;
 using CreditosApp.Models;
 using CreditosApp.Services;
 
@@ -12,15 +14,18 @@ public class AnalistaController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly ICreditCacheService _cacheService;
+    private readonly IHubContext<SolicitudesHub> _hubContext;
     private readonly ILogger<AnalistaController> _logger;
 
     public AnalistaController(
         ApplicationDbContext context,
         ICreditCacheService cacheService,
+        IHubContext<SolicitudesHub> hubContext,
         ILogger<AnalistaController> logger)
     {
         _context = context;
         _cacheService = cacheService;
+        _hubContext = hubContext;
         _logger = logger;
     }
 
@@ -72,13 +77,22 @@ public class AnalistaController : Controller
         solicitud.MotivoRechazo = null;
         await _context.SaveChangesAsync();
 
-        // Invalidar caché de Redis del cliente propietario
-        if (!string.IsNullOrEmpty(solicitud.Cliente?.UsuarioId))
+        // 1. Invalidar caché de Redis del cliente propietario
+        var usuarioIdDestino = solicitud.Cliente?.UsuarioId;
+        if (!string.IsNullOrEmpty(usuarioIdDestino))
         {
-            await _cacheService.InvalidarSolicitudesUsuarioAsync(solicitud.Cliente.UsuarioId);
+            await _cacheService.InvalidarSolicitudesUsuarioAsync(usuarioIdDestino);
+
+            // 2. Emitir evento WebSocket SolicitudEstadoActualizado ÚNICAMENTE al propietario (Pregunta 6)
+            await _hubContext.Clients.User(usuarioIdDestino).SendAsync("SolicitudEstadoActualizado", new
+            {
+                solicitudId = solicitud.Id,
+                estado = solicitud.Estado.ToString(),
+                motivoRechazo = (string?)null
+            });
         }
 
-        _logger.LogInformation("Solicitud #{Id} aprobada por el analista {Analista}.", id, User.Identity?.Name);
+        _logger.LogInformation("Solicitud #{Id} aprobada por el analista {Analista}. Evento WebSocket emitido.", id, User.Identity?.Name);
         TempData["Exito"] = $"Solicitud #{id} aprobada exitosamente.";
 
         return RedirectToAction(nameof(Index));
@@ -117,13 +131,22 @@ public class AnalistaController : Controller
         solicitud.MotivoRechazo = motivoRechazo.Trim();
         await _context.SaveChangesAsync();
 
-        // Invalidar caché de Redis del cliente propietario
-        if (!string.IsNullOrEmpty(solicitud.Cliente?.UsuarioId))
+        // 1. Invalidar caché de Redis del cliente propietario
+        var usuarioIdDestino = solicitud.Cliente?.UsuarioId;
+        if (!string.IsNullOrEmpty(usuarioIdDestino))
         {
-            await _cacheService.InvalidarSolicitudesUsuarioAsync(solicitud.Cliente.UsuarioId);
+            await _cacheService.InvalidarSolicitudesUsuarioAsync(usuarioIdDestino);
+
+            // 2. Emitir evento WebSocket SolicitudEstadoActualizado ÚNICAMENTE al propietario (Pregunta 6)
+            await _hubContext.Clients.User(usuarioIdDestino).SendAsync("SolicitudEstadoActualizado", new
+            {
+                solicitudId = solicitud.Id,
+                estado = solicitud.Estado.ToString(),
+                motivoRechazo = solicitud.MotivoRechazo
+            });
         }
 
-        _logger.LogInformation("Solicitud #{Id} rechazada por el analista {Analista}. Motivo: {Motivo}", id, User.Identity?.Name, motivoRechazo);
+        _logger.LogInformation("Solicitud #{Id} rechazada por el analista {Analista}. Evento WebSocket emitido.", id, User.Identity?.Name);
         TempData["Exito"] = $"Solicitud #{id} rechazada correctamente.";
 
         return RedirectToAction(nameof(Index));

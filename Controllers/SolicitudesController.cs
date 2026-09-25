@@ -289,4 +289,34 @@ public class SolicitudesController : Controller
 
         return View(model);
     }
+
+    // GET: /Solicitudes/EstadoActual/5 (Pregunta 6: consulta de estado al reconectar)
+    [HttpGet]
+    [Route("Solicitudes/EstadoActual/{id}")]
+    public async Task<IActionResult> EstadoActual(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var esAnalista = User.IsInRole("Analista");
+
+        var solicitud = await _context.SolicitudesCredito
+            .Include(s => s.Cliente)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        if (solicitud == null)
+        {
+            return NotFound();
+        }
+
+        if (!esAnalista && solicitud.Cliente?.UsuarioId != userId)
+        {
+            return Forbid();
+        }
+
+        return Json(new
+        {
+            solicitudId = solicitud.Id,
+            estado = solicitud.Estado.ToString(),
+            motivoRechazo = solicitud.MotivoRechazo
+        });
+    }
 }

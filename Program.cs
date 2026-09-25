@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using CreditosApp.Data;
+using CreditosApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,23 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 })
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>();
+
+// Configuración de Redis Cache y Sesión
+var redisConn = builder.Configuration["Redis:ConnectionString"];
+if (!string.IsNullOrEmpty(redisConn))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConn;
+        options.InstanceName = "CreditosApp_";
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+
+builder.Services.AddScoped<ICreditCacheService, CreditCacheService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession(options =>

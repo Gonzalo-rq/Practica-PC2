@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CreditosApp.Data;
 using CreditosApp.Models;
+using CreditosApp.Services;
 
 namespace CreditosApp.Controllers;
 
@@ -13,11 +14,16 @@ public class SolicitudesController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly ICreditCacheService _cacheService;
 
-    public SolicitudesController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+    public SolicitudesController(
+        ApplicationDbContext context, 
+        UserManager<IdentityUser> userManager,
+        ICreditCacheService cacheService)
     {
         _context = context;
         _userManager = userManager;
+        _cacheService = cacheService;
     }
 
     // GET: /Solicitudes o /Solicitudes/MisSolicitudes
@@ -67,6 +73,24 @@ public class SolicitudesController : Controller
             return View(filtro);
         }
 
+        // Cache de Redis: si no hay filtros activos, consultar o almacenar en caché (Pregunta 4)
+        bool sinFiltros = !filtro.Estado.HasValue &&
+                          !filtro.MontoMin.HasValue &&
+                          !filtro.MontoMax.HasValue &&
+                          !filtro.FechaInicio.HasValue &&
+                          !filtro.FechaFin.HasValue;
+
+        if (sinFiltros)
+        {
+            var enCache = await _cacheService.ObtenerSolicitudesUsuarioAsync(userId);
+            if (enCache != null)
+            {
+                filtro.Solicitudes = enCache;
+                ViewBag.FuenteDatos = "Redis Cache (60s)";
+                return View(filtro);
+            }
+        }
+
         var query = _context.SolicitudesCredito
             .Include(s => s.Cliente)
             .Where(s => s.ClienteId == cliente.Id)
@@ -103,6 +127,12 @@ public class SolicitudesController : Controller
             .OrderByDescending(s => s.FechaSolicitud)
             .ToListAsync();
 
+        if (sinFiltros && filtro.Solicitudes.Any())
+        {
+            await _cacheService.GuardarSolicitudesUsuarioAsync(userId, filtro.Solicitudes, TimeSpan.FromSeconds(60));
+            ViewBag.FuenteDatos = "Base de datos (Almacenado en Redis)";
+        }
+
         return View(filtro);
     }
 
@@ -133,6 +163,10 @@ public class SolicitudesController : Controller
         {
             return Forbid();
         }
+
+        // Pregunta 4: Guardar en sesión respaldada por Redis la última solicitud visitada
+        HttpContext.Session.SetString("UltimaSolicitudId", solicitud.Id.ToString());
+        HttpContext.Session.SetString("UltimaSolicitudMonto", solicitud.MontoSolicitado.ToString("C"));
 
         return View(solicitud);
     }
@@ -245,6 +279,9 @@ public class SolicitudesController : Controller
 
         _context.SolicitudesCredito.Add(solicitud);
         await _context.SaveChangesAsync();
+
+        // Pregunta 4: Invalidar caché de Redis al registrar nueva solicitud
+        await _cacheService.InvalidarSolicitudesUsuarioAsync(userId);
 
         ViewBag.MensajeExito = $"¡Solicitud #{solicitud.Id} registrada exitosamente por {solicitud.MontoSolicitado:C}! Su estado inicial es Pendiente.";
         model.TieneSolicitudPendiente = true;
